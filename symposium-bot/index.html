@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>EEE Symposium Voice Bot</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron&display=swap" rel="stylesheet" />
+  <style>
+    body {
+      font-family: 'Orbitron', sans-serif;
+      background: linear-gradient(135deg, #1e1e2f, #0f0f1c);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      height: 100vh;
+      margin: 0;
+      padding: 20px;
+    }
+
+    h1 {
+      font-size: 2em;
+      margin-top: 20px;
+      text-shadow: 2px 2px 5px cyan;
+    }
+
+    p {
+      font-size: 1.1em;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+
+    #status {
+      margin-top: 20px;
+      font-size: 1.2em;
+      background: rgba(255, 255, 255, 0.1);
+      padding: 10px 20px;
+      border-radius: 10px;
+      border: 1px solid #00ffff;
+    }
+
+    button {
+      font-size: 24px;
+      padding: 12px 24px;
+      background: #00ffff;
+      color: #000;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(0, 255, 255, 0.5);
+      transition: 0.3s;
+    }
+
+    button:hover {
+      background: #00cccc;
+    }
+
+    .bot-emoji {
+      font-size: 60px;
+      transition: transform 0.5s ease;
+      margin-bottom: 20px;
+    }
+
+    .listening {
+      transform: scale(1.2) rotate(10deg);
+    }
+
+    .talking {
+      animation: smile 1s infinite;
+    }
+
+    @keyframes smile {
+      0% { transform: scale(1) rotate(0deg); }
+      50% { transform: scale(1.1) rotate(5deg); }
+      100% { transform: scale(1) rotate(0deg); }
+    }
+
+    .map-container {
+      margin-top: 20px;
+      max-width: 100%;
+    }
+
+    .map-container img {
+      width: 100%;
+      max-width: 600px;
+      border: 3px solid cyan;
+      border-radius: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="bot-emoji" id="botFace">🙂</div>
+  <h1>Welcome to EEE Symposium Voice Assistant</h1>
+  <p>Tap the mic and ask your question<br><i>(e.g., "Where is the paper presentation?")</i></p>
+  <button onclick="startRecognition()">🎤 Ask Me</button>
+  <p id="status">Ready to help!</p>
+
+  <div class="map-container">
+    <h2>Indoor Map</h2>
+    <img src="map.png" alt="Indoor Map of Venue"/>
+  </div>
+
+  <script>
+    const schedule = {
+      "paper presentation": "The paper presentation is in Auditorium A from 10 AM to 12 PM.",
+      "robotics event": "The robotics event is in Lab 2 starting from 2 PM.",
+      "location of events": "Events are spread across the Main Auditorium and Labs 1 to 3.",
+      "lunch time": "Lunch is from 1 PM to 2 PM in the canteen area."
+    };
+
+    const synth = window.speechSynthesis;
+    const botFace = document.getElementById("botFace");
+
+    function speak(text) {
+      const utter = new SpeechSynthesisUtterance(text);
+      const voices = synth.getVoices();
+      const selectedVoice = voices.find(v => v.name.includes("Google") && v.lang === "en-US");
+      if (selectedVoice) utter.voice = selectedVoice;
+
+      utter.onstart = () => botFace.textContent = "😀";
+      utter.onend = () => botFace.textContent = "🙂";
+
+      synth.speak(utter);
+    }
+
+    function startRecognition() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        alert("Speech Recognition not supported on this browser.");
+        return;
+      }
+
+      const recognition = new SpeechRecognition();
+      recognition.lang = "en-US";
+      recognition.start();
+
+      botFace.classList.add("listening");
+      document.getElementById("status").textContent = "Listening...";
+
+      recognition.onresult = (event) => {
+        botFace.classList.remove("listening");
+        botFace.classList.add("talking");
+
+        const transcript = event.results[0][0].transcript.toLowerCase();
+        document.getElementById("status").textContent = `You said: "${transcript}"`;
+
+        let found = false;
+        for (let key in schedule) {
+          if (transcript.includes(key)) {
+            speak(schedule[key]);
+            found = true;
+            break;
+          }
+        }
+        if (!found) {
+          speak("Sorry, I didn't understand that. Please ask about event times or locations.");
+        }
+
+        setTimeout(() => botFace.classList.remove("talking"), 2000);
+      };
+
+      recognition.onerror = (e) => {
+        document.getElementById("status").textContent = "Speech recognition error. Please try again.";
+        botFace.textContent = "😕";
+      };
+    }
+  </script>
+</body>
+</html>
+
